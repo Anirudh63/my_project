@@ -3,6 +3,7 @@ backend/venv/
 backend/__pycache__/
 *.pyc
 backend/.env
+backend/*.json
 
 # Ignore frontend build if using React
 frontend/node_modules/
