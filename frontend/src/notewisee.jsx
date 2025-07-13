@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { BookOpen, Sparkles, Moon, Sun, FileText, Zap, Brain, ChevronRight } from 'lucide-react';
 
 const NoteWise = () => {
@@ -22,31 +22,31 @@ The Renaissance marked the transition from medieval to modern times, emphasizing
 
   const handleSummarize = async () => {
     if (!notes.trim()) return;
-    
+
     setIsLoading(true);
     setShowSummary(false);
-    
-    // Simulate AI processing
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Generate a mock summary
-    const mockSummary = `✨ **Key Points Summary:**
 
-📚 **Main Topic:** ${notes.split('.')[0]}...
+    try {
+      const response = await fetch("http://127.0.0.1:8000/summarize", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text: notes }),
+      });
 
-🎯 **Essential Insights:**
-• Core concepts identified and distilled
-• Important connections highlighted
-• Key terminology extracted
+      const data = await response.json();
 
-💡 **Study Tips:**
-• Focus on the highlighted concepts
-• Review connections between ideas
-• Use the summary for quick revision
+      if (data.summary) {
+        setSummary(data.summary);
+      } else {
+        setSummary("⚠️ Failed to summarize. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      setSummary("⚠️ Backend error. Is the FastAPI server running?");
+    }
 
-*This summary captures the most important information for efficient studying.*`;
-    
-    setSummary(mockSummary);
     setIsLoading(false);
     setShowSummary(true);
   };
@@ -76,7 +76,7 @@ The Renaissance marked the transition from medieval to modern times, emphasizing
               Note<span className="text-blue-500">Wise</span>
             </h1>
           </div>
-          
+
           <button
             onClick={() => setIsDarkMode(!isDarkMode)}
             className={`p-3 rounded-xl ${isDarkMode ? 'bg-gray-800/50 hover:bg-gray-700/50 text-yellow-400' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'} transition-all duration-300 hover:scale-110`}
@@ -92,15 +92,15 @@ The Renaissance marked the transition from medieval to modern times, emphasizing
               <Sparkles className={`w-12 h-12 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
             </div>
           </div>
-          
+
           <h2 className={`text-5xl md:text-6xl font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
             Summarize <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">smarter</span>
           </h2>
-          
+
           <p className={`text-xl md:text-2xl mb-8 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
             Study faster with AI-powered note summarization
           </p>
-          
+
           <div className="flex flex-wrap justify-center gap-4 mb-8">
             <div className={`flex items-center space-x-2 px-4 py-2 rounded-full ${isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-600'}`}>
               <Zap className="w-4 h-4" />
@@ -122,9 +122,7 @@ The Renaissance marked the transition from medieval to modern times, emphasizing
           {/* Input Section */}
           <div className={`p-8 rounded-3xl ${isDarkMode ? 'bg-gray-800/50 backdrop-blur-sm border border-gray-700' : 'bg-white/80 backdrop-blur-sm border border-gray-200'} shadow-2xl mb-8 transition-all duration-300 hover:shadow-3xl`}>
             <div className="flex justify-between items-center mb-6">
-              <h3 className={`text-2xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-                Your Notes
-              </h3>
+              <h3 className={`text-2xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Your Notes</h3>
               <button
                 onClick={loadSample}
                 className={`flex items-center space-x-2 px-4 py-2 rounded-xl ${isDarkMode ? 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-400' : 'bg-blue-100 hover:bg-blue-200 text-blue-600'} transition-all duration-200 hover:scale-105`}
@@ -133,19 +131,17 @@ The Renaissance marked the transition from medieval to modern times, emphasizing
                 <span className="text-sm font-medium">Load Sample</span>
               </button>
             </div>
-            
+
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Paste your notes, lecture content, or study material here..."
               className={`w-full h-64 p-6 rounded-2xl resize-none ${isDarkMode ? 'bg-gray-900/50 border border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border border-gray-300 text-gray-800 placeholder-gray-500'} focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300`}
             />
-            
+
             <div className="flex justify-between items-center mt-6">
-              <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                {notes.length} characters
-              </div>
-              
+              <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{notes.length} characters</div>
+
               <button
                 onClick={handleSummarize}
                 disabled={!notes.trim() || isLoading}
@@ -178,17 +174,13 @@ The Renaissance marked the transition from medieval to modern times, emphasizing
                 <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-blue-500/20' : 'bg-blue-100'}`}>
                   <Brain className={`w-6 h-6 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
                 </div>
-                <h3 className={`text-2xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-                  AI Summary
-                </h3>
+                <h3 className={`text-2xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>AI Summary</h3>
               </div>
-              
+
               <div className={`prose prose-lg max-w-none ${isDarkMode ? 'prose-invert' : ''}`}>
-                <div className={`whitespace-pre-wrap ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                  {summary}
-                </div>
+                <div className={`whitespace-pre-wrap ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>{summary}</div>
               </div>
-              
+
               <div className="flex justify-end mt-6">
                 <button className={`flex items-center space-x-2 px-6 py-3 rounded-xl ${isDarkMode ? 'bg-green-500/20 hover:bg-green-500/30 text-green-400' : 'bg-green-100 hover:bg-green-200 text-green-600'} transition-all duration-200 hover:scale-105`}>
                   <FileText className="w-4 h-4" />
@@ -201,12 +193,11 @@ The Renaissance marked the transition from medieval to modern times, emphasizing
 
         {/* Footer */}
         <footer className={`text-center mt-16 pt-8 border-t ${isDarkMode ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-500'}`}>
-          <p className="text-sm">
-            Built with AI-powered summarization • Perfect for students and learners
-          </p>
+          <p className="text-sm">Built with AI-powered summarization • Perfect for students and learners</p>
         </footer>
       </div>
     </div>
   );
 };
+
 export default NoteWise;
