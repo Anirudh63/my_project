@@ -1,59 +1,48 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
-import openai
 import os
-
 import firebase_admin
 from firebase_admin import credentials, firestore
+from transformers import pipeline
 
-# Load environment variables from .env
+# Load environment variables
 load_dotenv()
 
-# Initialize FastAPI app
+# Initialize FastAPI
 app = FastAPI()
 
-# Setup OpenAI API key
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# Load Firebase credentials
-firebase_creds = os.getenv("FIREBASE_CREDENTIALS")
-cred = credentials.Certificate(firebase_creds)
+# Firebase
+cred = credentials.Certificate("firebase-key.json")
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
-# Input schema for note summarization
+# Load summarization pipeline (from HuggingFace)
+summarizer = pipeline("summarization", model="t5-small", tokenizer="t5-small")
+
+# Pydantic request model
 class NoteRequest(BaseModel):
     text: str
 
-# Root route for health check
-@app.get("/")
-def read_root():
-    return {"message": "NoteWise backend is running ✅"}
-
-# Summarize note and save to Firestore
+# Summarization endpoint
 @app.post("/summarize")
-def summarize_note(note: NoteRequest):
+async def summarize(note: NoteRequest):
     try:
-        # AI Summary
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You're a helpful study assistant. Summarize text into bullet-point study notes."},
-                {"role": "user", "content": note.text}
-            ],
-            temperature=0.5,
-            max_tokens=500
-        )
-        summary = response['choices'][0]['message']['content']
+        # Truncate if text is too long for t5-small
+        input_text = note.text.strip().replace("\n", " ")
+        input_text = "summarize: " + input_text[:512]  # max tokens for small model
 
-        # Save to Firestore
-        db.collection("notes").add({
-            "original": note.text,
-            "summary": summary
-        })
-
+        summary = summarizer(input_text, max_length=100, min_length=20, do_sample=False)[0]["summary_text"]
         return {"summary": summary}
-
     except Exception as e:
         return {"error": str(e)}
